@@ -22,27 +22,24 @@ for hg in hostgroups["hostgroup"]:
 	elif isinstance(hg["members"]["host"], (dict)):
 		if hg['members']['host']['host_name']:
 			hostgroup_map[hg["hostgroup_name"]] = [hg["members"]["host"]]
-		
-# create host dictionary
-hosts_map = {}
-for h in hosts["host"]:
-    hosts_map[h["host_name"]] = h["address"]
 
+# create host dictionary
+hosts_map = {h["host_name"]: h["address"] for h in hosts["host"]}
 # begin the build of the json output with groups and hosts
-ansible_info = {}
-for hg_name in hostgroup_map:
-    ansible_info[hg_name] = {
-        "hosts": [hosts_map[host['host_name']] for host in hostgroup_map[hg_name]]
-    }
+ansible_info = {
+	hg_name: {
+		"hosts": [
+			hosts_map[host['host_name']] for host in hostgroup_map[hg_name]
+		]
+	}
+	for hg_name in hostgroup_map
+}
 
 # add _meta as required by Ansible
-ansible_info.update({"_meta": {"hostvars": {}}})
+ansible_info["_meta"] = {"hostvars": {}}
 
 # add the all group as required by Ansible
-host_list = []
-for b in hosts_map:
-	host_list.append(hosts_map[b])
-ansible_info.update({"all": host_list})
+host_list = list(hosts_map.values())
+ansible_info["all"] = host_list
 
-# printing the json to stdout creates the inventory list for Ansible
-print json.dumps(ansible_info)
+verify_file()
